@@ -1,4 +1,4 @@
-# 🚀 TaskSphere — Secure REST API with RBAC & Premium React Dashboard
+#  TaskSphere — Secure REST API with RBAC & Premium React Dashboard
 
 A production-grade REST API featuring **JWT Authentication**, **Role-Based Access Control (RBAC)**, **CRUD operations**, **Swagger API documentation**, **rate limiting**, and a stunning **glassmorphism React frontend**.
 
@@ -6,7 +6,7 @@ Built as part of the Backend Developer Intern assignment.
 
 ---
 
-## 📋 Table of Contents
+## Table of Contents
 
 - [Tech Stack](#tech-stack)
 - [Features](#features)
@@ -39,7 +39,7 @@ Built as part of the Backend Developer Intern assignment.
 
 ---
 
-## ✅ Features
+##  Features
 
 ### Backend
 - 🔐 **JWT Authentication** — register, login, refresh with 24h token expiry

@@ -1,0 +1,493 @@
+{
+  "info": {
+    "name": "TaskSphere — Scalable REST API with RBAC",
+    "description": "Complete Postman collection for the TaskSphere backend intern assignment. Covers Authentication, Tasks CRUD, and Admin User Management. All routes under /api/v1/.\n\n**Quick Start:**\n1. Set the `base_url` variable to your server (default: http://localhost:5000).\n2. Call POST /auth/register — the first user auto-gets ADMIN role.\n3. Copy the returned `token` into the `jwt_token` collection variable.\n4. All protected routes will then work automatically via the Bearer Auth header.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "tasksphere-collection-v1"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:5000",
+      "type": "string",
+      "description": "Base URL of the running backend server"
+    },
+    {
+      "key": "jwt_token",
+      "value": "",
+      "type": "string",
+      "description": "Paste your JWT here after logging in, or use the auto-set login script"
+    },
+    {
+      "key": "task_id",
+      "value": "",
+      "type": "string",
+      "description": "Set this to a task UUID after creating a task"
+    },
+    {
+      "key": "user_id",
+      "value": "",
+      "type": "string",
+      "description": "Set this to a user UUID for admin role-update requests"
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{jwt_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "🔐 Authentication",
+      "description": "User registration, login, and profile endpoints. Rate limited to 25 requests per 15 minutes.",
+      "item": [
+        {
+          "name": "Register new user",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "register"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Peter Parker\",\n  \"email\": \"peter@example.com\",\n  \"password\": \"securePassword123\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Register a new user. The very first registered user is automatically granted the ADMIN role. Returns a JWT token on success."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  const json = pm.response.json();",
+                  "  if (json.token) {",
+                  "    pm.collectionVariables.set('jwt_token', json.token);",
+                  "    console.log('JWT token saved to collection variable jwt_token');",
+                  "  }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "201 — Registration successful (first user → ADMIN)",
+              "status": "Created",
+              "code": 201,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Registration successful. You are the first user and have been granted ADMIN role!\",\n  \"token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\",\n  \"user\": {\n    \"id\": \"550e8400-e29b-41d4-a716-446655440000\",\n    \"email\": \"peter@example.com\",\n    \"name\": \"Peter Parker\",\n    \"role\": \"ADMIN\"\n  }\n}"
+            },
+            {
+              "name": "400 — User already exists",
+              "status": "Bad Request",
+              "code": 400,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": false,\n  \"error\": {\n    \"status\": 400,\n    \"message\": \"User with this email already exists.\"\n  }\n}"
+            },
+            {
+              "name": "400 — Validation error",
+              "status": "Bad Request",
+              "code": 400,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": false,\n  \"errors\": [\n    { \"field\": \"email\", \"message\": \"Please enter a valid email address\" },\n    { \"field\": \"password\", \"message\": \"Password must be at least 6 characters long\" }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "login"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"peter@example.com\",\n  \"password\": \"securePassword123\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Login with email and password. Returns a JWT token valid for 24 hours."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const json = pm.response.json();",
+                  "  if (json.token) {",
+                  "    pm.collectionVariables.set('jwt_token', json.token);",
+                  "    console.log('JWT token saved to collection variable jwt_token');",
+                  "  }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "200 — Login successful",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Login successful.\",\n  \"token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\",\n  \"user\": {\n    \"id\": \"550e8400-e29b-41d4-a716-446655440000\",\n    \"email\": \"peter@example.com\",\n    \"name\": \"Peter Parker\",\n    \"role\": \"ADMIN\"\n  }\n}"
+            },
+            {
+              "name": "401 — Invalid credentials",
+              "status": "Unauthorized",
+              "code": 401,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": false,\n  \"error\": {\n    \"status\": 401,\n    \"message\": \"Invalid email or password.\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get current user profile",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/me",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "me"]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{jwt_token}}", "type": "string" }]
+            },
+            "description": "Returns the profile of the currently authenticated user. Requires a valid JWT Bearer token."
+          },
+          "response": [
+            {
+              "name": "200 — User profile",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": true,\n  \"user\": {\n    \"id\": \"550e8400-e29b-41d4-a716-446655440000\",\n    \"email\": \"peter@example.com\",\n    \"name\": \"Peter Parker\",\n    \"role\": \"ADMIN\",\n    \"createdAt\": \"2026-05-20T21:28:10.000Z\"\n  }\n}"
+            },
+            {
+              "name": "401 — No token / expired token",
+              "status": "Unauthorized",
+              "code": 401,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": false,\n  \"error\": {\n    \"status\": 401,\n    \"message\": \"Access denied. No token provided.\"\n  }\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "✅ Tasks",
+      "description": "CRUD operations on Tasks. All routes require JWT authentication. Standard users see only their own tasks; Admins can view all tasks with ?all=true.",
+      "item": [
+        {
+          "name": "Create task",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/tasks",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "tasks"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Complete internship assignment\",\n  \"description\": \"Implement JWT auth and Swagger documentation\",\n  \"status\": \"IN_PROGRESS\",\n  \"priority\": \"HIGH\",\n  \"dueDate\": \"2026-05-24T18:00:00.000Z\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Create a new task assigned to the authenticated user.\n\n**Fields:**\n- `title` (required, max 100 chars)\n- `description` (optional)\n- `status`: PENDING | IN_PROGRESS | COMPLETED (default: PENDING)\n- `priority`: LOW | MEDIUM | HIGH (default: MEDIUM)\n- `dueDate`: ISO8601 datetime string (optional)"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  const json = pm.response.json();",
+                  "  if (json.task && json.task.id) {",
+                  "    pm.collectionVariables.set('task_id', json.task.id);",
+                  "    console.log('task_id saved:', json.task.id);",
+                  "  }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "201 — Task created",
+              "status": "Created",
+              "code": 201,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Task created successfully.\",\n  \"task\": {\n    \"id\": \"a3bb189e-8bf9-3888-9912-ace4e6543002\",\n    \"title\": \"Complete internship assignment\",\n    \"description\": \"Implement JWT auth and Swagger documentation\",\n    \"status\": \"IN_PROGRESS\",\n    \"priority\": \"HIGH\",\n    \"dueDate\": \"2026-05-24T18:00:00.000Z\",\n    \"userId\": \"550e8400-e29b-41d4-a716-446655440000\",\n    \"createdAt\": \"2026-05-20T21:28:10.000Z\",\n    \"updatedAt\": \"2026-05-20T21:28:10.000Z\"\n  }\n}"
+            },
+            {
+              "name": "400 — Validation error",
+              "status": "Bad Request",
+              "code": 400,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": false,\n  \"errors\": [\n    { \"field\": \"title\", \"message\": \"Task title is required\" }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get all tasks (with filters)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/tasks?status=IN_PROGRESS&priority=HIGH&sortBy=createdAt:desc",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "tasks"],
+              "query": [
+                { "key": "status", "value": "IN_PROGRESS", "description": "Filter by status: PENDING | IN_PROGRESS | COMPLETED" },
+                { "key": "priority", "value": "HIGH", "description": "Filter by priority: LOW | MEDIUM | HIGH" },
+                { "key": "search", "value": "", "description": "Search in title or description", "disabled": true },
+                { "key": "all", "value": "true", "description": "Admin only: fetch all users' tasks", "disabled": true },
+                { "key": "sortBy", "value": "createdAt:desc", "description": "Sort field:direction — createdAt | dueDate | title | priority" }
+              ]
+            },
+            "description": "List tasks with optional filtering, search, and sorting.\n\n- Standard users see only their own tasks.\n- Admins can pass `?all=true` to see every task in the system.\n\n**Query params (all optional):**\n- `status`: PENDING | IN_PROGRESS | COMPLETED\n- `priority`: LOW | MEDIUM | HIGH\n- `search`: full-text search on title + description\n- `all`: true (Admin only)\n- `sortBy`: field:direction (e.g. `dueDate:asc`)"
+          },
+          "response": [
+            {
+              "name": "200 — Task list",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": true,\n  \"count\": 1,\n  \"tasks\": [\n    {\n      \"id\": \"a3bb189e-8bf9-3888-9912-ace4e6543002\",\n      \"title\": \"Complete internship assignment\",\n      \"description\": \"Implement JWT auth and Swagger documentation\",\n      \"status\": \"IN_PROGRESS\",\n      \"priority\": \"HIGH\",\n      \"dueDate\": \"2026-05-24T18:00:00.000Z\",\n      \"userId\": \"550e8400-e29b-41d4-a716-446655440000\",\n      \"createdAt\": \"2026-05-20T21:28:10.000Z\",\n      \"updatedAt\": \"2026-05-20T21:28:10.000Z\",\n      \"user\": {\n        \"id\": \"550e8400-e29b-41d4-a716-446655440000\",\n        \"name\": \"Peter Parker\",\n        \"email\": \"peter@example.com\"\n      }\n    }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get task by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/tasks/{{task_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "tasks", "{{task_id}}"]
+            },
+            "description": "Retrieve a single task by its UUID. Non-admin users can only fetch tasks they own."
+          },
+          "response": [
+            {
+              "name": "200 — Task found",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": true,\n  \"task\": {\n    \"id\": \"a3bb189e-8bf9-3888-9912-ace4e6543002\",\n    \"title\": \"Complete internship assignment\",\n    \"description\": \"Implement JWT auth and Swagger documentation\",\n    \"status\": \"IN_PROGRESS\",\n    \"priority\": \"HIGH\",\n    \"dueDate\": \"2026-05-24T18:00:00.000Z\",\n    \"userId\": \"550e8400-e29b-41d4-a716-446655440000\",\n    \"createdAt\": \"2026-05-20T21:28:10.000Z\",\n    \"updatedAt\": \"2026-05-20T21:28:10.000Z\",\n    \"user\": {\n      \"id\": \"550e8400-e29b-41d4-a716-446655440000\",\n      \"name\": \"Peter Parker\",\n      \"email\": \"peter@example.com\"\n    }\n  }\n}"
+            },
+            {
+              "name": "403 — Not the task owner",
+              "status": "Forbidden",
+              "code": 403,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": false,\n  \"error\": {\n    \"status\": 403,\n    \"message\": \"Access denied. You do not own this task.\"\n  }\n}"
+            },
+            {
+              "name": "404 — Task not found",
+              "status": "Not Found",
+              "code": 404,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": false,\n  \"error\": {\n    \"status\": 404,\n    \"message\": \"Task not found.\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Update task",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/tasks/{{task_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "tasks", "{{task_id}}"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Updated Task Title\",\n  \"status\": \"COMPLETED\",\n  \"priority\": \"MEDIUM\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Update an existing task. All fields are optional — only send what you want to change. Non-admin users can only update tasks they own."
+          },
+          "response": [
+            {
+              "name": "200 — Task updated",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Task updated successfully.\",\n  \"task\": {\n    \"id\": \"a3bb189e-8bf9-3888-9912-ace4e6543002\",\n    \"title\": \"Updated Task Title\",\n    \"status\": \"COMPLETED\",\n    \"priority\": \"MEDIUM\",\n    \"updatedAt\": \"2026-05-21T10:00:00.000Z\"\n  }\n}"
+            },
+            {
+              "name": "403 — Not the task owner",
+              "status": "Forbidden",
+              "code": 403,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": false,\n  \"error\": {\n    \"status\": 403,\n    \"message\": \"Access denied. You do not own this task.\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Delete task",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/tasks/{{task_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "tasks", "{{task_id}}"]
+            },
+            "description": "Permanently delete a task by UUID. Non-admin users can only delete tasks they own."
+          },
+          "response": [
+            {
+              "name": "200 — Task deleted",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Task deleted successfully.\"\n}"
+            },
+            {
+              "name": "404 — Task not found",
+              "status": "Not Found",
+              "code": 404,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": false,\n  \"error\": {\n    \"status\": 404,\n    \"message\": \"Task not found.\"\n  }\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "👑 Admin — User Management",
+      "description": "User management endpoints. All routes require JWT authentication AND the ADMIN role. Non-admins will receive a 403 Forbidden response.",
+      "item": [
+        {
+          "name": "Get all users",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/users",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "users"]
+            },
+            "description": "Retrieve a list of all registered users with their task counts. Admin only."
+          },
+          "response": [
+            {
+              "name": "200 — User list",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": true,\n  \"count\": 2,\n  \"users\": [\n    {\n      \"id\": \"550e8400-e29b-41d4-a716-446655440000\",\n      \"name\": \"Peter Parker\",\n      \"email\": \"peter@example.com\",\n      \"role\": \"ADMIN\",\n      \"createdAt\": \"2026-05-20T21:28:10.000Z\",\n      \"taskCount\": 3\n    },\n    {\n      \"id\": \"660e9500-f30c-52e5-b827-557766551111\",\n      \"name\": \"Mary Jane\",\n      \"email\": \"mj@example.com\",\n      \"role\": \"USER\",\n      \"createdAt\": \"2026-05-21T09:00:00.000Z\",\n      \"taskCount\": 1\n    }\n  ]\n}"
+            },
+            {
+              "name": "403 — Not an Admin",
+              "status": "Forbidden",
+              "code": 403,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": false,\n  \"error\": {\n    \"status\": 403,\n    \"message\": \"Forbidden. Access requires one of the following roles: ADMIN\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Update user role",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/users/{{user_id}}/role",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "users", "{{user_id}}", "role"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"ADMIN\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Promote or demote a user's role. Admin only.\n\n- Accepted values: `USER` | `ADMIN`\n- An admin cannot demote themselves (security block)."
+          },
+          "response": [
+            {
+              "name": "200 — Role updated",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": true,\n  \"message\": \"User role updated to ADMIN successfully.\",\n  \"user\": {\n    \"id\": \"660e9500-f30c-52e5-b827-557766551111\",\n    \"name\": \"Mary Jane\",\n    \"email\": \"mj@example.com\",\n    \"role\": \"ADMIN\"\n  }\n}"
+            },
+            {
+              "name": "400 — Self-demotion blocked",
+              "status": "Bad Request",
+              "code": 400,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": false,\n  \"error\": {\n    \"status\": 400,\n    \"message\": \"Security block: You cannot demote yourself. Another Admin must perform this action.\"\n  }\n}"
+            },
+            {
+              "name": "404 — User not found",
+              "status": "Not Found",
+              "code": 404,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": false,\n  \"error\": {\n    \"status\": 404,\n    \"message\": \"User not found.\"\n  }\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "⚙️ Health Check",
+      "description": "Server health and uptime endpoint. No authentication required.",
+      "item": [
+        {
+          "name": "Health check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/health",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "health"]
+            },
+            "description": "Returns server status, current timestamp, and uptime in seconds. No auth required."
+          },
+          "response": [
+            {
+              "name": "200 — Server is up",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": true,\n  \"status\": \"UP\",\n  \"timestamp\": \"2026-05-21T10:00:00.000Z\",\n  \"uptime\": 3600.42\n}"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

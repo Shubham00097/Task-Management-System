@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: assignment-backend
+    ports:
+      - "5000:5000"
+    environment:
+      - PORT=5000
+      - NODE_ENV=production
+      - DATABASE_URL=file:./dev.db
+      - JWT_SECRET=f39c28a87b5bc680d2822a10df48b209e51c89fbf0e8529241b3127ef672fbc681b9201bd74f177265a6c38da063c49a37e90c8bb26c48de8792019488a0d9e9
+    volumes:
+      - backend-db:/usr/src/app/prisma
+      - backend-logs:/usr/src/app/logs
+    restart: always
+
+volumes:
+  backend-db:
+  backend-logs:
